@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/firebase.js";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import {
@@ -12,37 +12,22 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-
-type Negotiation = {
-  id: number;
-  broker: string;
-  route: string;
-  offer: number;
-  status: string;
-  type: string;
-};
+import {
+  type GhostLoad,
+  GHOST_TARGET_RATE_PER_MILE,
+  createGhostFoundLoad,
+  ratePerMile,
+  stepGhostNegotiation,
+} from "@/lib/ghostAgent";
 
 export default function DispatchDashboard() {
   const [earnings, setEarnings] = useState(4250);
 
   // Mock data for the "Ghost" working in the background
-  const [negotiations, setNegotiations] = useState<Negotiation[]>([
-    {
-      id: 1,
-      broker: "TQL (Mike)",
-      route: "Chicago → Dallas",
-      offer: 3100,
-      status: "Negotiating...",
-      type: "Dry Van",
-    },
-    {
-      id: 2,
-      broker: "C.H. Robinson",
-      route: "Gary → Laredo",
-      offer: 2850,
-      status: "Hot Lead",
-      type: "Reefer",
-    },
+  const [ghostActive, setGhostActive] = useState(true);
+  const [negotiations, setNegotiations] = useState<GhostLoad[]>(() => [
+    createGhostFoundLoad(),
+    createGhostFoundLoad(),
   ]);
 
   const moneyTrackerLabel = useMemo(() => {
@@ -55,7 +40,28 @@ export default function DispatchDashboard() {
     return `${day} • ${time}`;
   }, []);
 
-  const handleAccept = async (load: Negotiation) => {
+  // Simulate: ghost finds loads + negotiates in the background.
+  useEffect(() => {
+    if (!ghostActive) return;
+
+    const addInterval = window.setInterval(() => {
+      setNegotiations((prev) => {
+        const next = [createGhostFoundLoad(), ...prev];
+        return next.slice(0, 8);
+      });
+    }, 6500);
+
+    const negotiateInterval = window.setInterval(() => {
+      setNegotiations((prev) => prev.map(stepGhostNegotiation));
+    }, 2200);
+
+    return () => {
+      window.clearInterval(addInterval);
+      window.clearInterval(negotiateInterval);
+    };
+  }, [ghostActive]);
+
+  const handleAccept = async (load: GhostLoad) => {
     // Save to Firebase FIRST so you don't lose the data.
     try {
       if (!db) {
@@ -69,6 +75,7 @@ export default function DispatchDashboard() {
         ...load,
         acceptedAt: serverTimestamp(),
         finalRate: load.offer,
+        ratePerMile: ratePerMile(load.offer, load.miles),
       });
 
       // Only update UI AFTER the write succeeds.
@@ -141,6 +148,26 @@ export default function DispatchDashboard() {
               </p>
             </div>
           </div>
+
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-xs">
+            <div className="flex items-center gap-2 text-slate-400">
+              <span className="font-bold uppercase tracking-[0.26em] text-slate-500">
+                Ghost rules:
+              </span>
+              <span className="text-emerald-300 font-black">
+                ≥ ${GHOST_TARGET_RATE_PER_MILE.toFixed(2)}/mi
+              </span>
+              <span className="text-slate-500">• auto-counter under target</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setGhostActive((v) => !v)}
+              className="rounded-full border border-slate-700 bg-slate-900/60 px-4 py-2 font-black uppercase tracking-widest text-slate-200 hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-300/60"
+            >
+              {ghostActive ? "Ghost: ON" : "Ghost: OFF"}
+            </button>
+          </div>
         </div>
 
         {/* Section header */}
@@ -184,9 +211,40 @@ export default function DispatchDashboard() {
                       {load.route}
                     </h3>
 
-                    <p className="mt-2 font-mono text-3xl font-black text-emerald-300 drop-shadow-[0_0_18px_rgba(16,185,129,0.22)] md:text-4xl">
-                      ${load.offer.toLocaleString()}
-                    </p>
+                    <div className="mt-2 flex flex-wrap items-end gap-x-4 gap-y-2">
+                      <p className="font-mono text-3xl font-black text-emerald-300 drop-shadow-[0_0_18px_rgba(16,185,129,0.22)] md:text-4xl">
+                        ${load.offer.toLocaleString()}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400">
+                        <span className="rounded-full border border-slate-800 bg-black/30 px-3 py-1">
+                          {load.miles.toLocaleString()} mi
+                        </span>
+                        <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-emerald-200">
+                          {ratePerMile(load.offer, load.miles).toFixed(2)}/mi
+                        </span>
+                        <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-amber-200">
+                          target {load.targetRatePerMile.toFixed(2)}/mi
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {load.messages.slice(-2).map((m) => (
+                        <div
+                          key={m.id}
+                          className={
+                            m.from === "ghost"
+                              ? "rounded-2xl border border-emerald-500/15 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
+                              : "rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-sm text-slate-200"
+                          }
+                        >
+                          <span className="mr-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                            {m.from === "ghost" ? "Ghost" : "Broker"}
+                          </span>
+                          {m.text}
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Huge driver-friendly controls */}
