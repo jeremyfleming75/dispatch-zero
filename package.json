@@ -1,0 +1,26 @@
+{
+  "name": "dispatchzero",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test",
+    "example": "node src/example.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeremyfleming75/dispatch-zero.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jeremyfleming75/dispatch-zero/issues"
+  },
+  "homepage": "https://github.com/jeremyfleming75/dispatch-zero#readme",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "firebase": "^12.7.0"
+  }
+}
