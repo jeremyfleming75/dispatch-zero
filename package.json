@@ -1,0 +1,9 @@
+{
+  "name": "dispatch-zero",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "firebase": "latest"
+  }
+}
+
