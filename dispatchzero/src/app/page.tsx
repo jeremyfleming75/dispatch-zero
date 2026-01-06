@@ -56,27 +56,28 @@ export default function DispatchDashboard() {
   }, []);
 
   const handleAccept = async (load: Negotiation) => {
-    // Drop it in Firebase (if configured). Otherwise, keep it local so you can keep building.
+    // Save to Firebase FIRST so you don't lose the data.
     try {
-      if (db) {
-        await addDoc(collection(db, "accepted_loads"), {
-          ...load,
-          acceptedAt: serverTimestamp(),
-          finalRate: load.offer,
-        });
+      if (!db) {
+        alert(
+          "Firebase isn't connected yet. Add your keys to .env.local and restart the dev server."
+        );
+        return;
       }
 
+      await addDoc(collection(db, "accepted_loads"), {
+        ...load,
+        acceptedAt: serverTimestamp(),
+        finalRate: load.offer,
+      });
+
+      // Only update UI AFTER the write succeeds.
       setEarnings((prev) => prev + load.offer);
       setNegotiations((prev) => prev.filter((n) => n.id !== load.id));
-
-      alert(
-        db
-          ? "Accepted and saved to Firestore."
-          : "Accepted (Firebase not configured yet)."
-      );
+      alert("Saved to Firebase: accepted_loads");
     } catch (e) {
       console.error("Error accepting load: ", e);
-      alert("Could not save right now. Check your Firebase config.");
+      alert("Could not save to Firebase. The load was NOT removed.");
     }
   };
 
