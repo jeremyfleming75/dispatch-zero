@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+:root {
+  --dz-bg: #070a10;
+  --dz-fg: #e7edf6;
+  --dz-muted: #9aa7bd;
+  --dz-panel: rgba(12, 17, 28, 0.78);
+  --dz-panel-solid: #0c111c;
+  --dz-border: rgba(255, 255, 255, 0.08);
+  --dz-grid: rgba(255, 255, 255, 0.06);
+  --dz-accent: #22d3ee; /* cyan-400 */
+  --dz-accent-2: #60a5fa; /* blue-400 */
+  --dz-warn: #fbbf24; /* amber-400 */
+  --dz-danger: #fb7185; /* rose-400 */
+}
+
+@theme inline {
+  --color-background: var(--dz-bg);
+  --color-foreground: var(--dz-fg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@layer base {
+  * {
+    border-color: var(--dz-border);
+  }
+
+  body {
+    background: var(--dz-bg);
+    color: var(--dz-fg);
+  }
+}
+
+@layer utilities {
+  .dz-panel {
+    background: linear-gradient(
+      180deg,
+      rgba(18, 24, 38, 0.84),
+      rgba(10, 14, 24, 0.66)
+    );
+    border: 1px solid var(--dz-border);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.22), 0 18px 60px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+  }
+
+  .dz-text-muted {
+    color: var(--dz-muted);
+  }
+
+  .dz-grid {
+    background-image: linear-gradient(
+        to right,
+        var(--dz-grid) 1px,
+        transparent 1px
+      ),
+      linear-gradient(to bottom, var(--dz-grid) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(
+      60% 60% at 50% 30%,
+      rgba(0, 0, 0, 1),
+      rgba(0, 0, 0, 0)
+    );
+  }
+}
